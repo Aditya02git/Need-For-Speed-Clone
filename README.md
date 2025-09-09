@@ -1,18 +1,10 @@
 
-
-
-██████╗ █████╗ ██████╗       ██████╗ ██████╗ ███╗   ██╗████████╗██████╗  ██████╗ ██╗     ██╗     ███████╗██████╗ 
-██╔════╝██╔══██╗██╔══██╗     ██╔════╝██╔═══██╗████╗  ██║╚══██╔══╝██╔══██╗██╔═══██╗██║     ██║     ██╔════╝██╔══██╗
-██║     ███████║██████╔╝     ██║     ██║   ██║██╔██╗ ██║   ██║   ██████╔╝██║   ██║██║     ██║     █████╗  ██████╔╝
-██║     ██╔══██║██╔══██╗     ██║     ██║   ██║██║╚██╗██║   ██║   ██╔══██╗██║   ██║██║     ██║     ██╔══╝  ██╔══██╗
-╚██████╗██║  ██║██║  ██║     ╚██████╗╚██████╔╝██║ ╚████║   ██║   ██║  ██║╚██████╔╝███████╗███████╗███████╗██║  ██║
- ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝      ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝
                                                             
 
 ### with Three.js & Cannon.js ---
 
-This is a Car Controller built with Three.js + Cannon.js.  
-It allows users to simulate driving a car inside a 3D environment with realistic physics.
+This is a small approach to Clone of the game Need For Speed built with Three.js + Cannon.js.  
+It allows users to simulate driving a car inside a 3D environment with realistic physics with chasing mechanics.
 
 
 ### Getting Started ---
