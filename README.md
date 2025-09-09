@@ -44,7 +44,7 @@ Spacebar → Handbrake
 
 🚗 Suspension system for improved vehicle dynamics
 
-🏎️ Advanced techniques: drifting, powersliding
+🏎️ Advanced techniques: powersliding
 
 ⚙️ Simulations of tire wear, fuel consumption, engine damage
 
@@ -62,4 +62,3 @@ Submit a pull request 🔀
 
 Star the repo ⭐
 
-👉 Visit the GitHub Repository: "https://github.com/Aditya02git/GTA-Vice-City-Car-Controller"
