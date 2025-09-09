@@ -1,0 +1,470 @@
+//---------------------------copy this and paste with your control function---------------------------
+
+controls() {
+    const maxSteerVal = 0.5;
+    const brakeForce = 45;
+    const slowDownCar = 25;
+    const keysPressed = [];
+
+    // Realistic acceleration system
+    this.accelerationPhase = 0; // 0 = idle, 1-3 = gear phases, 4 = max speed
+    this.isInGearShift = false;
+    this.gearShiftTimer = 0;
+    this.gearShiftDuration = 200; // milliseconds for gear shift pause
+    this.lastGearShiftTime = 0;
+    this.accelerationStartTime = 0;
+    this.wasAcceleratingPreviously = false;
+
+    // Define acceleration phases (gear ratios)
+    this.accelerationPhases = [
+      { maxForce: 1000, duration: 1000 },        // Phase 0: Idle
+      { maxForce: 1200, duration: 1500 },   // Phase 1: First gear
+      { maxForce: 1600, duration: 2000 },  // Phase 2: Second gear  
+      { maxForce: 1800, duration: 2500 },  // Phase 3: Third gear
+      { maxForce: 2000, duration: Infinity } // Phase 4: Top gear
+    ];
+
+    // Sound system setup
+    this.sounds = {
+      idle: null,
+      acceleration: null,
+      deceleration: null,
+      drifting: null,
+      reverse: null,
+      gearShift: null // Add gear shift sound
+    };
+
+    this.currentSound = null;
+    this.isMoving = false;
+    this.wasMoving = false;
+    this.wasAccelerating = false;
+    this.wasReversing = false;
+    this.wasDrifting = false;
+    this.speedThreshold = 0.5;
+
+    // Initialize sounds
+    this.initSounds = () => {
+      this.sounds.idle = new Audio("./sounds/fer_idle.mp3");
+      this.sounds.acceleration = new Audio("./sounds/fer_accn.mp3");
+      this.sounds.deceleration = new Audio("./sounds/fer_dec.mp3");
+      this.sounds.drifting = new Audio("./sounds/fer_drift.mp3");
+      this.sounds.reverse = new Audio("./sounds/fer_rev.mp3");
+      this.sounds.gearShift = new Audio("./sounds/fer_gear.mp3"); // Optional gear shift sound
+
+      // Set loop for continuous sounds
+      this.sounds.idle.loop = true;
+      this.sounds.acceleration.loop = true;
+      this.sounds.drifting.loop = true;
+      this.sounds.reverse.loop = true;
+
+      // Set volumes
+      this.sounds.idle.volume = 0.3;
+      this.sounds.acceleration.volume = 0.5;
+      this.sounds.deceleration.volume = 0.4;
+      this.sounds.drifting.volume = 0.6;
+      this.sounds.reverse.volume = 0.4;
+      this.sounds.gearShift.volume = 0.3;
+    };
+
+    this.initSounds();
+
+    // Acceleration management
+    this.updateAcceleration = () => {
+      const currentTime = Date.now();
+      const isAccelerating = keysPressed.includes("w") || keysPressed.includes("arrowup");
+      
+      // Reset acceleration if W key was released and pressed again
+      if (isAccelerating && !this.wasAcceleratingPreviously) {
+        this.accelerationPhase = 0;
+        this.accelerationStartTime = currentTime;
+        this.isInGearShift = false;
+        this.gearShiftTimer = 0;
+      }
+      
+      // Update acceleration phases only if accelerating
+      if (isAccelerating) {
+        const timeSinceStart = currentTime - this.accelerationStartTime;
+        
+        // Check if we need to shift gears
+        if (!this.isInGearShift && this.accelerationPhase < 4) {
+          const currentPhase = this.accelerationPhases[this.accelerationPhase];
+          
+          // Time to shift to next gear
+          if (this.accelerationPhase > 0 && timeSinceStart >= currentPhase.duration) {
+            this.startGearShift();
+          }
+          // Initial start (move from idle to first gear)
+          else if (this.accelerationPhase === 0 && timeSinceStart >= 100) {
+            this.startGearShift();
+          }
+        }
+        
+        // Handle gear shift timing
+        if (this.isInGearShift) {
+          if (currentTime - this.lastGearShiftTime >= this.gearShiftDuration) {
+            this.completeGearShift();
+          }
+        }
+        
+        this.wasAcceleratingPreviously = true;
+      } else {
+        // Reset when not accelerating
+        this.accelerationPhase = 0;
+        this.isInGearShift = false;
+        this.wasAcceleratingPreviously = false;
+      }
+    };
+
+    this.startGearShift = () => {
+      this.isInGearShift = true;
+      this.lastGearShiftTime = Date.now();
+      
+      // Play gear shift sound if available
+      if (this.sounds.gearShift) {
+        this.sounds.gearShift.currentTime = 0;
+        this.sounds.gearShift.play().catch(e => console.log("Gear shift sound failed:", e));
+      }
+    };
+
+    this.completeGearShift = () => {
+      this.isInGearShift = false;
+      this.accelerationPhase = Math.min(this.accelerationPhase + 1, 4);
+      
+      // Update acceleration start time for next phase
+      this.accelerationStartTime = Date.now();
+    };
+
+    this.getCurrentMaxForce = () => {
+      if (this.isInGearShift) {
+        // During gear shift, reduce power significantly
+        return this.accelerationPhases[this.accelerationPhase].maxForce * 0.3;
+      }
+      return this.accelerationPhases[this.accelerationPhase].maxForce;
+    };
+
+    // Sound management methods
+    this.playSound = (soundName) => {
+      if (this.currentSound === soundName) return;
+
+      this.stopAllSounds();
+
+      if (this.sounds[soundName]) {
+        this.sounds[soundName].currentTime = 0;
+        this.sounds[soundName]
+          .play()
+          .catch((e) => console.log("Audio play failed:", e));
+        this.currentSound = soundName;
+
+        if (soundName === "deceleration") {
+          this.sounds.deceleration.onended = () => {
+            const stillIdle = !(
+              keysPressed.includes("w") ||
+              keysPressed.includes("arrowup") ||
+              keysPressed.includes("s") ||
+              keysPressed.includes("arrowdown") ||
+              (this.isDrifting && keysPressed.includes(" "))
+            );
+            if (stillIdle) {
+              this.playSound("idle");
+            }
+          };
+        }
+      }
+    };
+
+    this.stopAllSounds = () => {
+      Object.values(this.sounds).forEach((sound) => {
+        if (sound) {
+          sound.pause();
+          sound.currentTime = 0;
+        }
+      });
+      this.currentSound = null;
+    };
+
+    this.getCarSpeed = () => {
+      if (!this.car || !this.car.chassisBody) return 0;
+      const velocity = this.car.chassisBody.velocity;
+      return Math.sqrt(
+        velocity.x * velocity.x +
+          velocity.y * velocity.y +
+          velocity.z * velocity.z
+      );
+    };
+
+    this.updateSound = () => {
+      const speed = this.getCarSpeed();
+      this.isMoving = speed > this.speedThreshold;
+
+      const isAccelerating =
+        keysPressed.includes("w") || keysPressed.includes("arrowup");
+      const isReversing =
+        keysPressed.includes("s") || keysPressed.includes("arrowdown");
+      const spacePressed = keysPressed.includes(" ");
+      const leftPressed =
+        keysPressed.includes("a") || keysPressed.includes("arrowleft");
+      const rightPressed =
+        keysPressed.includes("d") || keysPressed.includes("arrowright");
+      const isDrifting =
+        spacePressed && (leftPressed || rightPressed) && isAccelerating;
+
+      const shouldPlayIdleForBraking =
+        spacePressed && isAccelerating && !isDrifting;
+
+      if (shouldPlayIdleForBraking) {
+        this.playSound("idle");
+        this.wasAccelerating = isAccelerating;
+        this.wasReversing = isReversing;
+        this.wasDrifting = isDrifting;
+        this.wasMoving = this.isMoving;
+        return;
+      }
+
+      // Modified sound logic to account for gear shifts
+      if (isDrifting && this.isDrifting) {
+        this.playSound("drifting");
+      } else if (isReversing && !isDrifting) {
+        this.playSound("reverse");
+      } else if (isAccelerating && !isDrifting && !spacePressed) {
+        // During gear shift, play a different sound or modify acceleration sound
+        if (this.isInGearShift) {
+          // You could play a different sound here or modify the acceleration sound
+          this.playSound("idle"); // Brief pause in acceleration sound
+        } else {
+          this.playSound("acceleration");
+        }
+      } else if (
+        this.wasAccelerating &&
+        !isAccelerating &&
+        !isReversing &&
+        !isDrifting
+      ) {
+        this.playSound("deceleration");
+
+        if (this.sounds.deceleration) {
+          this.sounds.deceleration.onended = () => {
+            const stillIdle = !(
+              keysPressed.includes("w") ||
+              keysPressed.includes("arrowup") ||
+              keysPressed.includes("s") ||
+              keysPressed.includes("arrowdown") ||
+              (this.isDrifting && spacePressed)
+            );
+            if (stillIdle) {
+              this.playSound("idle");
+            }
+          };
+        }
+      } else if (
+        this.wasReversing &&
+        !isReversing &&
+        !isAccelerating &&
+        !isDrifting
+      ) {
+        this.playSound("deceleration");
+
+        if (this.sounds.deceleration) {
+          this.sounds.deceleration.onended = () => {
+            const stillIdle = !(
+              keysPressed.includes("w") ||
+              keysPressed.includes("arrowup") ||
+              keysPressed.includes("s") ||
+              keysPressed.includes("arrowdown") ||
+              (this.isDrifting && spacePressed)
+            );
+            if (stillIdle) {
+              this.playSound("idle");
+            }
+          };
+        }
+      } else if (this.wasDrifting && !isDrifting) {
+        this.playSound("deceleration");
+
+        if (this.sounds.deceleration) {
+          this.sounds.deceleration.onended = () => {
+            const currentlyAccelerating =
+              keysPressed.includes("w") || keysPressed.includes("arrowup");
+            const currentlyReversing =
+              keysPressed.includes("s") || keysPressed.includes("arrowdown");
+            const currentlySpacePressed = keysPressed.includes(" ");
+
+            if (currentlyAccelerating && !currentlySpacePressed) {
+              this.playSound("acceleration");
+            } else if (currentlyReversing) {
+              this.playSound("reverse");
+            } else {
+              this.playSound("idle");
+            }
+          };
+        }
+      } else if (
+        !isAccelerating &&
+        !isReversing &&
+        !isDrifting &&
+        this.currentSound !== "deceleration"
+      ) {
+        this.playSound("idle");
+      }
+
+      this.wasAccelerating = isAccelerating;
+      this.wasReversing = isReversing;
+      this.wasDrifting = isDrifting;
+      this.wasMoving = this.isMoving;
+    };
+
+    window.addEventListener("keydown", (e) => {
+      if (!keysPressed.includes(e.key.toLowerCase()))
+        keysPressed.push(e.key.toLowerCase());
+      hindMovement();
+    });
+
+    window.addEventListener("keyup", (e) => {
+      keysPressed.splice(keysPressed.indexOf(e.key.toLowerCase()), 1);
+      hindMovement();
+    });
+
+    const hindMovement = () => {
+      if (this.controlsDisabled) {
+        return;
+      }
+
+      // Update acceleration system
+      this.updateAcceleration();
+
+      if (keysPressed.includes("r")) resetCar();
+
+      if (keysPressed.includes("f")) {
+        this.toggleWireframe();
+        keysPressed.splice(keysPressed.indexOf("f"), 1);
+      }
+
+      const wPressed =
+        keysPressed.includes("w") || keysPressed.includes("arrowup");
+      const spacePressed = keysPressed.includes(" ");
+      const leftPressed =
+        keysPressed.includes("a") || keysPressed.includes("arrowleft");
+      const rightPressed =
+        keysPressed.includes("d") || keysPressed.includes("arrowright");
+      const shouldDrift =
+        spacePressed && (leftPressed || rightPressed) && wPressed;
+
+      if (shouldDrift && !this.isDrifting) {
+        this.startDrift();
+      } else if (!shouldDrift && this.isDrifting) {
+        this.stopDrift();
+      }
+
+      if (!spacePressed || shouldDrift) {
+        if (!spacePressed) {
+          this.deactivateBrakeLight();
+        } else if (shouldDrift) {
+          this.activateBrakeLight();
+        }
+
+        this.car.setBrake(0, 0);
+        this.car.setBrake(0, 1);
+        this.car.setBrake(0, 2);
+        this.car.setBrake(0, 3);
+
+        const steerMultiplier = this.isDrifting ? this.driftSteerMultiplier : 1;
+
+        if (leftPressed) {
+          this.car.setSteeringValue(maxSteerVal * steerMultiplier, 2);
+          this.car.setSteeringValue(maxSteerVal * steerMultiplier, 3);
+        } else if (rightPressed) {
+          this.car.setSteeringValue(maxSteerVal * -steerMultiplier, 2);
+          this.car.setSteeringValue(maxSteerVal * -steerMultiplier, 3);
+        } else stopSteer();
+
+        // Use realistic acceleration system
+        if (keysPressed.includes("w") || keysPressed.includes("arrowup")) {
+          const currentForce = this.getCurrentMaxForce();
+          this.car.applyEngineForce(currentForce * -1, 0);
+          this.car.applyEngineForce(currentForce * -1, 1);
+          this.car.applyEngineForce(currentForce * -1, 2);
+          this.car.applyEngineForce(currentForce * -1, 3);
+        } else if (
+          keysPressed.includes("s") ||
+          keysPressed.includes("arrowdown")
+        ) {
+          if (!shouldDrift) {
+            this.activateReverseLight();
+          }
+
+          this.car.applyEngineForce(this.maxForce * 1, 0);
+          this.car.applyEngineForce(this.maxForce * 1, 1);
+          this.car.applyEngineForce(this.maxForce * 1, 2);
+          this.car.applyEngineForce(this.maxForce * 1, 3);
+        } else {
+          this.car.applyEngineForce(0, 0);
+          this.car.applyEngineForce(0, 1);
+          this.car.applyEngineForce(0, 2);
+          this.car.applyEngineForce(0, 3);
+
+          this.deactivateReverseLight();
+
+          if (!shouldDrift) {
+            stopCar();
+          }
+        }
+      } else {
+        this.activateBrakeLight();
+        brake();
+      }
+
+      this.updateSound();
+    };
+
+    const resetCar = () => {
+      this.car.chassisBody.position.set(0, 4, 0);
+
+      const euler = new CANNON.Vec3(0, Math.PI / 2, 0);
+      const q = new CANNON.Quaternion();
+      q.setFromEuler(euler.x, euler.y, euler.z);
+      this.car.chassisBody.quaternion.copy(q);
+
+      this.car.chassisBody.angularVelocity.set(0, 0, 0);
+      this.car.chassisBody.velocity.set(0, 0, 0);
+
+      this.stopDrift();
+
+      // Reset acceleration system
+      this.accelerationPhase = 0;
+      this.isInGearShift = false;
+      this.gearShiftTimer = 0;
+      this.wasAcceleratingPreviously = false;
+
+      this.isMoving = false;
+      this.wasMoving = false;
+      this.wasAccelerating = false;
+      this.wasReversing = false;
+      this.wasDrifting = false;
+
+      this.playSound("idle");
+
+      this.maxForce = 1500;
+    };
+
+    const brake = () => {
+      this.car.setBrake(brakeForce, 0);
+      this.car.setBrake(brakeForce, 1);
+      this.car.setBrake(brakeForce, 2);
+      this.car.setBrake(brakeForce, 3);
+    };
+
+    const stopCar = () => {
+      this.car.setBrake(slowDownCar, 0);
+      this.car.setBrake(slowDownCar, 1);
+      this.car.setBrake(slowDownCar, 2);
+      this.car.setBrake(slowDownCar, 3);
+    };
+
+    const stopSteer = () => {
+      this.car.setSteeringValue(0, 2);
+      this.car.setSteeringValue(0, 3);
+    };
+
+    this.cleanup = () => {
+      this.stopAllSounds();
+    };
+  }

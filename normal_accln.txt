@@ -1,0 +1,398 @@
+//-------------------copy this and paste with your control function------------------------  
+
+controls() {
+    const maxSteerVal = 0.5;
+    const brakeForce = 45;
+    const slowDownCar = 25;
+    const keysPressed = [];
+
+    // Sound system setup
+    this.sounds = {
+      idle: null,
+      acceleration: null,
+      deceleration: null,
+      drifting: null,
+      reverse: null,
+    };
+
+    this.currentSound = null;
+    this.isMoving = false;
+    this.wasMoving = false;
+    this.wasAccelerating = false; // Track if W was pressed in previous frame
+    this.wasReversing = false; // Track if S was pressed in previous frame
+    this.wasDrifting = false; // Track if drifting in previous frame
+    this.speedThreshold = 0.5; // Minimum speed to consider "moving"
+
+    // Initialize sounds (you'll need to load your audio files)
+    this.initSounds = () => {
+      this.sounds.idle = new Audio("./sounds/fer_idle.mp3");
+      this.sounds.acceleration = new Audio("./sounds/fer_accn.mp3");
+      this.sounds.deceleration = new Audio("./sounds/fer_dec.mp3");
+      this.sounds.drifting = new Audio("./sounds/fer_drift.mp3");
+      this.sounds.reverse = new Audio("./sounds/fer_rev.mp3");
+
+      // Set loop for continuous sounds
+      this.sounds.idle.loop = true;
+      this.sounds.acceleration.loop = true;
+      this.sounds.drifting.loop = true;
+      this.sounds.reverse.loop = true;
+
+      // Set volumes (adjust as needed)
+      this.sounds.idle.volume = 0.3;
+      this.sounds.acceleration.volume = 0.5;
+      this.sounds.deceleration.volume = 0.4;
+      this.sounds.drifting.volume = 0.6;
+      this.sounds.reverse.volume = 0.4;
+    };
+
+    // Call this method to initialize sounds
+    this.initSounds();
+
+    // Sound management methods
+    this.playSound = (soundName) => {
+      if (this.currentSound === soundName) return; // Already playing this sound
+
+      this.stopAllSounds();
+
+      if (this.sounds[soundName]) {
+        this.sounds[soundName].currentTime = 0;
+        this.sounds[soundName]
+          .play()
+          .catch((e) => console.log("Audio play failed:", e));
+        this.currentSound = soundName;
+
+        // Stop boost animation when deceleration sound ends
+        if (soundName === "deceleration") {
+          this.sounds.deceleration.onended = () => {
+            // Continue with original logic for next sound
+            const stillIdle = !(
+              keysPressed.includes("w") ||
+              keysPressed.includes("arrowup") ||
+              keysPressed.includes("s") ||
+              keysPressed.includes("arrowdown") ||
+              (this.isDrifting && keysPressed.includes(" "))
+            );
+            if (stillIdle) {
+              this.playSound("idle");
+            }
+          };
+        }
+      }
+    };
+
+    this.stopAllSounds = () => {
+      Object.values(this.sounds).forEach((sound) => {
+        if (sound) {
+          sound.pause();
+          sound.currentTime = 0;
+        }
+      });
+      this.currentSound = null;
+    };
+
+    // Get current car speed
+    this.getCarSpeed = () => {
+      if (!this.car || !this.car.chassisBody) return 0;
+      const velocity = this.car.chassisBody.velocity;
+      return Math.sqrt(
+        velocity.x * velocity.x +
+          velocity.y * velocity.y +
+          velocity.z * velocity.z
+      );
+    };
+
+    // Update sound based on car state
+    this.updateSound = () => {
+      const speed = this.getCarSpeed();
+      this.isMoving = speed > this.speedThreshold;
+
+      // Check current input states
+      const isAccelerating =
+        keysPressed.includes("w") || keysPressed.includes("arrowup");
+      const isReversing =
+        keysPressed.includes("s") || keysPressed.includes("arrowdown");
+      const spacePressed = keysPressed.includes(" ");
+      const leftPressed =
+        keysPressed.includes("a") || keysPressed.includes("arrowleft");
+      const rightPressed =
+        keysPressed.includes("d") || keysPressed.includes("arrowright");
+      const isDrifting =
+        spacePressed && (leftPressed || rightPressed) && isAccelerating;
+
+      // Check if we should play idle sound due to spacebar + W key
+      const shouldPlayIdleForBraking =
+        spacePressed && isAccelerating && !isDrifting;
+
+      // If spacebar is pressed while accelerating (but not drifting), play idle sound
+      if (shouldPlayIdleForBraking) {
+        this.playSound("idle");
+        // Track states for next frame
+        this.wasAccelerating = isAccelerating;
+        this.wasReversing = isReversing;
+        this.wasDrifting = isDrifting;
+        this.wasMoving = this.isMoving;
+        return; // Exit early to prevent other sound logic
+      }
+
+      // Priority order: Drifting > Reverse > Acceleration > Deceleration > Idle
+      if (isDrifting && this.isDrifting) {
+        // Currently drifting - play drift sound
+        this.playSound("drifting");
+      } else if (isReversing && !isDrifting) {
+        // Reversing (S key pressed) - play reverse sound
+        this.playSound("reverse");
+      } else if (isAccelerating && !isDrifting && !spacePressed) {
+        // W key is pressed (forward acceleration) and spacebar is NOT pressed - play acceleration sound
+        this.playSound("acceleration");
+      } else if (
+        this.wasAccelerating &&
+        !isAccelerating &&
+        !isReversing &&
+        !isDrifting
+      ) {
+        // W key was just released and not doing anything else - play deceleration sound then switch to idle
+        this.playSound("deceleration");
+
+        // Switch to idle after deceleration sound finishes
+        if (this.sounds.deceleration) {
+          this.sounds.deceleration.onended = () => {
+            const stillIdle = !(
+              keysPressed.includes("w") ||
+              keysPressed.includes("arrowup") ||
+              keysPressed.includes("s") ||
+              keysPressed.includes("arrowdown") ||
+              (this.isDrifting && spacePressed)
+            );
+            if (stillIdle) {
+              this.playSound("idle");
+            }
+          };
+        }
+      } else if (
+        this.wasReversing &&
+        !isReversing &&
+        !isAccelerating &&
+        !isDrifting
+      ) {
+        // S key was just released - play deceleration sound then switch to idle
+        this.playSound("deceleration");
+
+        // Switch to idle after deceleration sound finishes
+        if (this.sounds.deceleration) {
+          this.sounds.deceleration.onended = () => {
+            const stillIdle = !(
+              keysPressed.includes("w") ||
+              keysPressed.includes("arrowup") ||
+              keysPressed.includes("s") ||
+              keysPressed.includes("arrowdown") ||
+              (this.isDrifting && spacePressed)
+            );
+            if (stillIdle) {
+              this.playSound("idle");
+            }
+          };
+        }
+      } else if (this.wasDrifting && !isDrifting) {
+        this.playSound("deceleration");
+
+        if (this.sounds.deceleration) {
+          this.sounds.deceleration.onended = () => {
+            // Check what to play after deceleration
+            const currentlyAccelerating =
+              keysPressed.includes("w") || keysPressed.includes("arrowup");
+            const currentlyReversing =
+              keysPressed.includes("s") || keysPressed.includes("arrowdown");
+            const currentlySpacePressed = keysPressed.includes(" ");
+
+            if (currentlyAccelerating && !currentlySpacePressed) {
+              this.playSound("acceleration");
+            } else if (currentlyReversing) {
+              this.playSound("reverse");
+            } else {
+              this.playSound("idle");
+            }
+          };
+        }
+      } else if (
+        !isAccelerating &&
+        !isReversing &&
+        !isDrifting &&
+        this.currentSound !== "deceleration"
+      ) {
+        // No keys pressed and not in deceleration - play idle
+        this.playSound("idle");
+      }
+
+      // Track states for next frame
+      this.wasAccelerating = isAccelerating;
+      this.wasReversing = isReversing;
+      this.wasDrifting = isDrifting;
+      this.wasMoving = this.isMoving;
+    };
+
+    window.addEventListener("keydown", (e) => {
+      if (!keysPressed.includes(e.key.toLowerCase()))
+        keysPressed.push(e.key.toLowerCase());
+      hindMovement();
+    });
+
+    window.addEventListener("keyup", (e) => {
+      keysPressed.splice(keysPressed.indexOf(e.key.toLowerCase()), 1);
+      hindMovement();
+    });
+
+    const hindMovement = () => {
+      if (this.controlsDisabled) {
+        return; // Exit early, don't process any controls
+      }
+
+      if (keysPressed.includes("r")) resetCar();
+
+      if (keysPressed.includes("f")) {
+        this.toggleWireframe();
+        // Remove 'f' from pressed keys to prevent continuous toggling
+        keysPressed.splice(keysPressed.indexOf("f"), 1);
+      }
+
+      // Check if we should be drifting (spacebar + left/right)
+      const wPressed =
+        keysPressed.includes("w") || keysPressed.includes("arrowup");
+      const spacePressed = keysPressed.includes(" ");
+      const leftPressed =
+        keysPressed.includes("a") || keysPressed.includes("arrowleft");
+      const rightPressed =
+        keysPressed.includes("d") || keysPressed.includes("arrowright");
+      const shouldDrift =
+        spacePressed && (leftPressed || rightPressed) && wPressed;
+
+      // Handle drift state
+      if (shouldDrift && !this.isDrifting) {
+        this.startDrift();
+      } else if (!shouldDrift && this.isDrifting) {
+        this.stopDrift();
+      }
+
+      if (!spacePressed || shouldDrift) {
+        // Normal movement OR drifting mode
+
+        // Only deactivate brake light if not in pure braking mode
+        if (!spacePressed) {
+          this.deactivateBrakeLight();
+        } else if (shouldDrift) {
+          // Show brake light during drift
+          this.activateBrakeLight();
+        }
+
+        // Clear normal brakes
+        this.car.setBrake(0, 0);
+        this.car.setBrake(0, 1);
+        this.car.setBrake(0, 2);
+        this.car.setBrake(0, 3);
+
+        // Steering (with drift multiplier if drifting)
+        const steerMultiplier = this.isDrifting ? this.driftSteerMultiplier : 1;
+
+        if (leftPressed) {
+          this.car.setSteeringValue(maxSteerVal * steerMultiplier, 2);
+          this.car.setSteeringValue(maxSteerVal * steerMultiplier, 3);
+        } else if (rightPressed) {
+          this.car.setSteeringValue(maxSteerVal * -steerMultiplier, 2);
+          this.car.setSteeringValue(maxSteerVal * -steerMultiplier, 3);
+        } else stopSteer();
+
+        // Throttle
+        if (keysPressed.includes("w") || keysPressed.includes("arrowup")) {
+          this.car.applyEngineForce(this.maxForce * -1, 0);
+          this.car.applyEngineForce(this.maxForce * -1, 1);
+          this.car.applyEngineForce(this.maxForce * -1, 2);
+          this.car.applyEngineForce(this.maxForce * -1, 3);
+        } // In the hindMovement function, where you handle the S key (reverse)
+        else if (
+          keysPressed.includes("s") ||
+          keysPressed.includes("arrowdown")
+        ) {
+          // Only activate brake light for reverse if not already drifting
+          if (!shouldDrift) {
+            // this.activateBrakeLight();
+            this.activateReverseLight(); // Add this line
+          }
+
+          this.car.applyEngineForce(this.maxForce * 1, 0);
+          this.car.applyEngineForce(this.maxForce * 1, 1);
+          this.car.applyEngineForce(this.maxForce * 1, 2);
+          this.car.applyEngineForce(this.maxForce * 1, 3);
+        } else {
+          this.car.applyEngineForce(0, 0);
+          this.car.applyEngineForce(0, 1);
+          this.car.applyEngineForce(0, 2);
+          this.car.applyEngineForce(0, 3);
+
+          // Deactivate reverse lights when not reversing
+          this.deactivateReverseLight(); // Add this line
+
+          // Only apply slow-down if not drifting
+          if (!shouldDrift) {
+            stopCar();
+          }
+        }
+      } else {
+        // Pure braking mode (spacebar pressed without left/right)
+        this.activateBrakeLight();
+        brake();
+      }
+
+      // Update sound system after movement changes
+      this.updateSound();
+    };
+
+    const resetCar = () => {
+      this.car.chassisBody.position.set(0, 4, 0);
+
+      const euler = new CANNON.Vec3(0, Math.PI / 2, 0);
+      const q = new CANNON.Quaternion();
+      q.setFromEuler(euler.x, euler.y, euler.z);
+      this.car.chassisBody.quaternion.copy(q);
+
+      this.car.chassisBody.angularVelocity.set(0, 0, 0);
+      this.car.chassisBody.velocity.set(0, 0, 0);
+
+      // Reset drift state
+      this.stopDrift();
+
+      // Reset sound state
+      this.isMoving = false;
+      this.wasMoving = false;
+      this.wasAccelerating = false;
+      this.wasReversing = false;
+      this.wasDrifting = false;
+
+      this.playSound("idle");
+
+      // OPTIONAL: Reset maxForce when car resets
+      this.maxForce = 1500;
+    };
+
+    const brake = () => {
+      this.car.setBrake(brakeForce, 0);
+      this.car.setBrake(brakeForce, 1);
+      this.car.setBrake(brakeForce, 2);
+      this.car.setBrake(brakeForce, 3);
+    };
+
+    const stopCar = () => {
+      this.car.setBrake(slowDownCar, 0);
+      this.car.setBrake(slowDownCar, 1);
+      this.car.setBrake(slowDownCar, 2);
+      this.car.setBrake(slowDownCar, 3);
+    };
+
+    const stopSteer = () => {
+      this.car.setSteeringValue(0, 2);
+      this.car.setSteeringValue(0, 3);
+    };
+
+    // Clean up sounds when needed
+    this.cleanup = () => {
+      this.stopAllSounds();
+    };
+  }

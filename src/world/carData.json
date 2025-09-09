@@ -1,0 +1,104 @@
+[
+  {
+    "id": 1,
+    "name": "Veloce Motors",
+    "model": "Phoenix Spider",
+    "video": "./videos/Ferrari04.mp4",
+    "specs": {
+      "engine": "4.2L V8 Petrol",
+      "horsepower": "545 HP @ 8,800 rpm",
+      "torque": "385 lb-ft @ 5,800 rpm",
+      "acceleration": "3.1 seconds (0-60 mph)",
+      "topSpeed": "195 mph",
+      "weight": "3,120 lbs",
+      "transmission": "7-Speed Dual-Clutch Automatic",
+      "drivetrain": "RWD"
+    },
+    "description": "The Veloce Phoenix Spider features the world's first carbon-fiber retractable hardtop system. The roof transforms in just 12 seconds and can operate at speeds up to 30 mph for seamless open-air driving."
+  },
+  {
+    "id": 2,
+    "name": "Apex Automotive",
+    "model": "Storm GT Turbo",
+    "video": "./videos/Toyota_Supra02.mp4",
+    "specs": {
+      "engine": "3.2L Inline-6 Twin-Turbo",
+      "horsepower": "295 HP (official), ~340 HP (actual)",
+      "torque": "332 lb-ft",
+      "acceleration": "4.4 seconds (0-60 mph)",
+      "topSpeed": "158 mph (electronically limited)",
+      "weight": "3,380 lbs",
+      "transmission": "6-Speed Manual",
+      "drivetrain": "RWD"
+    },
+    "description": "The Storm GT Turbo became an icon of tuner culture with its bulletproof inline-6 engine capable of handling massive power increases. Its legendary reliability and modification potential made it a favorite among enthusiasts worldwide."
+  },
+  {
+    "id": 3,
+    "name": "Precision Dynamics",
+    "model": "R5 Competition",
+    "video": "./videos/BMW05.mp4",
+    "specs": {
+      "engine": "3.1L Inline-6 Twin-Turbo",
+      "horsepower": "485 HP",
+      "torque": "465 lb-ft",
+      "acceleration": "3.9 seconds (0-60 mph)",
+      "topSpeed": "175 mph",
+      "weight": "3,680 lbs",
+      "transmission": "8-Speed Automatic",
+      "drivetrain": "RWD"
+    },
+    "description": "Combining luxury craftsmanship with track-focused performance, the R5 Competition delivers precision engineering and aggressive styling for the ultimate driving experience."
+  },
+  {
+    "id": 4,
+    "name": "Titan Supercars",
+    "model": "Vortex Evo",
+    "video": "./videos/Lamborghini01.mp4",
+    "specs": {
+      "engine": "5.0L V10 Naturally Aspirated",
+      "horsepower": "612 HP",
+      "torque": "428 lb-ft",
+      "acceleration": "3.0 seconds (0-60 mph)",
+      "topSpeed": "198 mph",
+      "weight": "3,085 lbs",
+      "transmission": "7-Speed Dual-Clutch",
+      "drivetrain": "AWD"
+    },
+    "description": "The Titan Vortex Evo represents the evolution of supercar design, featuring advanced aerodynamics and cutting-edge performance technology that redefines what's possible on both road and track."
+  },
+  {
+    "id": 5,
+    "name": "Thunder Motors",
+    "model": "Comet Z1",
+    "video": "./videos/Chevrolet_Corvette03.mp4",
+    "specs": {
+      "engine": "6.0L V8 Naturally Aspirated",
+      "horsepower": "475 HP",
+      "torque": "455 lb-ft",
+      "acceleration": "3.2 seconds (0-60 mph)",
+      "topSpeed": "189 mph",
+      "weight": "3,290 lbs",
+      "transmission": "8-Speed Dual-Clutch",
+      "drivetrain": "RWD"
+    },
+    "description": "The revolutionary Comet Z1 marks Thunder Motors' first mid-engine design, delivering exotic supercar performance and handling at an accessible price point that democratizes the supercar experience."
+  },
+  {
+    "id": 6,
+    "name": "Titan Supercars",
+    "model": "Millennium X12-4",
+    "video": "./videos/Lamborghini_Centenario06.mp4",
+    "specs": {
+      "engine": "6.3L V12 Naturally Aspirated",
+      "horsepower": "755 HP",
+      "torque": "495 lb-ft",
+      "acceleration": "2.9 seconds (0-60 mph)",
+      "topSpeed": "213 mph",
+      "weight": "2,985 lbs",
+      "transmission": "7-Speed Sequential",
+      "drivetrain": "AWD"
+    },
+    "description": "Created as a limited-edition masterpiece commemorating Titan's 25th anniversary, the Millennium X12-4 represents the pinnacle of automotive artistry with only 25 units ever produced."
+  }
+]
