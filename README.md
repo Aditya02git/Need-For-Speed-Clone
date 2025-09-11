@@ -49,13 +49,16 @@ npm start
 
 ##  Controls
 
-| Key          | Action          |
-| ------------ | --------------- |
-| **W / ↑**    | Accelerate      |
-| **S / ↓**    | Brake / Reverse |
-| **A / ←**    | Steer Left      |
-| **D / →**    | Steer Right     |
-| **Spacebar** | Handbrake       |
+| Key                  | Action          |
+| -------------------- | --------------- |
+| **W / ↑**            | Accelerate      |
+| **S / ↓**            | Brake / Reverse |
+| **A / ←**            | Steer Left      |
+| **D / →**            | Steer Right     |
+| **Spacebar**         | Handbrake       |
+| **W + A + Spacebar** | Left Drift      |
+| **W + D + Spacebar** | Right Drift     |
+| ** L **              | Front Light     |
 
 ---
 
