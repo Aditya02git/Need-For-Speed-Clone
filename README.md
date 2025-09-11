@@ -59,7 +59,7 @@ npm start
 
 ---
 
-## 🔮 Future Improvements
+##  Future Improvements
 
 *  More complex + realistic environments with **hills, bumps, obstacles**
 *  Suspension system for **improved vehicle dynamics**
@@ -87,7 +87,7 @@ Feel free to use and build upon it!
 
 ---
 
-## ⭐ Show Your Support
+##  Show Your Support
 
 If you enjoyed this project, please consider giving it a ⭐ on GitHub — it helps a lot!
 
